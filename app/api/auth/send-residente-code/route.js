@@ -35,7 +35,8 @@ export async function POST(request) {
 
     // Enviar código por email vía n8n
     try {
-      const n8nResponse = await fetch(process.env.N8N_WEBHOOK_URL || 'http://localhost:5678/webhook/send-auth-code', {
+      const n8nUrl = 'https://n8n.geofile.mx/webhook/7dd9e64e-cea6-44c5-a415-0e5558c1c664'
+      const n8nResponse = await fetch(n8nUrl, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({

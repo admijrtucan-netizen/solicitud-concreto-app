@@ -14,14 +14,8 @@ export default function RootLayout({ children }) {
           <Sidebar />
           <div className="flex-1 flex flex-col">
             <header className="bg-white border-b" style={{ borderBottomColor: '#e5e7eb' }}>
-              <div className="px-8 py-6 flex items-center justify-between">
-                <div className="flex items-center gap-4">
-                  <img src="/logo-innovar.png" alt="INNOVAR" className="h-16" />
-                  <div>
-                    <h1 className="text-2xl font-bold" style={{ color: 'var(--brand-black)' }}>INNOVAR</h1>
-                    <p className="text-sm" style={{ color: 'var(--brand-gray-medium)' }}>Concreto Fresco</p>
-                  </div>
-                </div>
+              <div className="px-8 py-4 flex items-center">
+                <img src="/logo-innovar.png" alt="INNOVAR" className="h-20" />
               </div>
             </header>
             <main className="flex-1 overflow-auto">

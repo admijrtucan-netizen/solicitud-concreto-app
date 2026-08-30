@@ -15,9 +15,11 @@ export default function InformeCampo() {
   const [selectedFolio, setSelectedFolio] = useState('')
   const [folios, setFolios] = useState([])
   const [loadingFolios, setLoadingFolios] = useState(true)
+  const [personal, setPersonal] = useState([])
 
   useEffect(() => {
     fetchFolios()
+    fetchPersonal()
   }, [])
 
   const fetchFolios = async () => {
@@ -34,13 +36,26 @@ export default function InformeCampo() {
     }
   }
 
+  const fetchPersonal = async () => {
+    try {
+      const res = await fetch('/api/personal/list')
+      if (res.ok) {
+        const data = await res.json()
+        setPersonal(data.personal || [])
+      }
+    } catch (error) {
+      console.error('Error fetching personal:', error)
+    }
+  }
+
   const handleFolioSelect = () => {
     if (selectedFolio) setStep(2)
   }
 
   const [formData, setFormData] = useState({
-    'Termómetro TA': '',
-    'Termómetro T': '',
+    'Email Residente': '',
+    'Termometro TA': '',
+    'Termometro T': '',
     'Cono No.': '',
     'Carretilla No.': '',
     'Varilla No.': '',
@@ -53,21 +68,24 @@ export default function InformeCampo() {
     'Felx No.': '',
     'Placa de rev. No.': '',
     'Placa de extensibilidad No.': '',
-    'Día 1 Ensayo': false,
-    'Día 3 Ensayo': false,
-    'Día 7 Ensayo': false,
-    'Día 14 Ensayo': false,
-    'Día 28 Ensayo': false,
-    'Otro Día Ensayo': false,
-    'Elaboró': '',
+    'Dia 1 Ensayo': false,
+    'Dia 3 Ensayo': false,
+    'Dia 7 Ensayo': false,
+    'Dia 14 Ensayo': false,
+    'Dia 28 Ensayo': false,
+    'Otro Dia Ensayo': false,
+    'Elaboro': '',
+    'Elaboro Folio': '',
     'Solicita': '',
+    'Solicita Folio': '',
     'Vo. Bo.': '',
+    'Vo. Bo. Folio': '',
     'Observaciones': '',
     'Hora de muestreo': '',
   })
 
   const [signatures, setSignatures] = useState({
-    'Elaboró firma': null,
+    'Elaboro firma': null,
     'Solicita firma': null,
     'Vo. Bo. firma': null,
   })
@@ -83,14 +101,14 @@ export default function InformeCampo() {
     for (let i = 1; i <= cantMuestras; i++) {
       newMuestras[`M${i}`] = {
         'No. Muestra': '',
-        'No. Camión': '',
-        'No. de Remisión': '',
+        'No. Camion': '',
+        'No. de Remision': '',
         'Salida Planta': '',
         'Llegada a obra': '',
         'Inicio descarga': '',
         'Termina descarga': '',
         'Volumen': '',
-        'Edad de garantía': '',
+        'Edad de garantia': '',
         "F'c": '',
         'TMA': '',
         'Extensibilidad/Flujo de Rev.': '',
@@ -99,7 +117,7 @@ export default function InformeCampo() {
         'Temp Concreto': '',
         'Temp Ambiente': '',
         'Humedad': '',
-        'Localización': '',
+        'Localizacion': '',
       }
     }
     setMuestras(newMuestras)
@@ -137,12 +155,17 @@ export default function InformeCampo() {
   }
 
   const handleSave = async () => {
+    if (!formData['Elaboro Folio'] || !formData['Solicita Folio'] || !formData['Vo. Bo. Folio']) {
+      alert('Por favor ingresa todos los folios de autorizacion')
+      return
+    }
+
     setLoading(true)
     try {
       const dataToSave = {
         ...formData,
         'Cant. de Muestras Completas': cantMuestras,
-        'FOLIO TUCAN': selectedFolio, // Folio del informe
+        'FOLIO TUCAN': selectedFolio,
         ...signatures,
         muestras,
         ETAPA: 'LISTO',
@@ -230,18 +253,30 @@ export default function InformeCampo() {
             />
           </div>
 
+          <h3 className="text-lg font-semibold mb-4 mt-8">Email Residente de Obra</h3>
+          <div className="grid grid-cols-1 gap-4">
+            <FormField
+              label="Email Residente"
+              name="Email Residente"
+              type="email"
+              placeholder="residente@example.com"
+              value={formData['Email Residente']}
+              onChange={handleChange}
+            />
+          </div>
+
           <h3 className="text-lg font-semibold mb-4 mt-8">Equipos</h3>
           <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
             <FormField
-              label="Termómetro TA"
-              name="Termómetro TA"
-              value={formData['Termómetro TA']}
+              label="Termometro TA"
+              name="Termometro TA"
+              value={formData['Termometro TA']}
               onChange={handleChange}
             />
             <FormField
-              label="Termómetro T"
-              name="Termómetro T"
-              value={formData['Termómetro T']}
+              label="Termometro T"
+              name="Termometro T"
+              value={formData['Termometro T']}
               onChange={handleChange}
             />
             <FormField
@@ -285,14 +320,14 @@ export default function InformeCampo() {
           <h3 className="text-lg font-semibold mb-4 mt-8">Volumen y Placas</h3>
           <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
             <FormField
-              label="Volumen de esta hoja (m³)"
+              label="Volumen de esta hoja (m3)"
               name="Volumen de esta hoja"
               type="number"
               value={formData['Volumen de esta hoja']}
               onChange={handleChange}
             />
             <FormField
-              label="Volumen total (m³)"
+              label="Volumen total (m3)"
               name="Volumen total"
               type="number"
               value={formData['Volumen total']}
@@ -324,9 +359,9 @@ export default function InformeCampo() {
             />
           </div>
 
-          <h3 className="text-lg font-semibold mb-4 mt-8">Días de Ensayo</h3>
+          <h3 className="text-lg font-semibold mb-4 mt-8">Dias de Ensayo</h3>
           <div className="space-y-2">
-            {['Día 1 Ensayo', 'Día 3 Ensayo', 'Día 7 Ensayo', 'Día 14 Ensayo', 'Día 28 Ensayo', 'Otro Día Ensayo'].map(field => (
+            {['Dia 1 Ensayo', 'Dia 3 Ensayo', 'Dia 7 Ensayo', 'Dia 14 Ensayo', 'Dia 28 Ensayo', 'Otro Dia Ensayo'].map(field => (
               <FormField
                 key={field}
                 label={field}
@@ -338,7 +373,7 @@ export default function InformeCampo() {
             ))}
           </div>
 
-          <h3 className="text-lg font-semibold mb-4 mt-8">Información General</h3>
+          <h3 className="text-lg font-semibold mb-4 mt-8">Informacion General</h3>
           <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
             <TimeSelector
               label="Hora de muestreo"
@@ -356,7 +391,6 @@ export default function InformeCampo() {
             onChange={handleChange}
           />
 
-          {/* MUESTRAS DINÁMICAS M1-M10 */}
           {Array.from({ length: cantMuestras }).map((_, idx) => {
             const muestraNum = idx + 1
             const muestraKey = `M${muestraNum}`
@@ -372,14 +406,14 @@ export default function InformeCampo() {
                     onChange={(e) => handleMuestraChange(muestraKey, 'No. Muestra', e.target.value)}
                   />
                   <FormField
-                    label="No. Camión"
-                    value={muestra['No. Camión'] || ''}
-                    onChange={(e) => handleMuestraChange(muestraKey, 'No. Camión', e.target.value)}
+                    label="No. Camion"
+                    value={muestra['No. Camion'] || ''}
+                    onChange={(e) => handleMuestraChange(muestraKey, 'No. Camion', e.target.value)}
                   />
                   <FormField
-                    label="No. de Remisión"
-                    value={muestra['No. de Remisión'] || ''}
-                    onChange={(e) => handleMuestraChange(muestraKey, 'No. de Remisión', e.target.value)}
+                    label="No. de Remision"
+                    value={muestra['No. de Remision'] || ''}
+                    onChange={(e) => handleMuestraChange(muestraKey, 'No. de Remision', e.target.value)}
                   />
                   <FormField
                     label="Salida Planta"
@@ -406,18 +440,18 @@ export default function InformeCampo() {
                     onChange={(e) => handleMuestraChange(muestraKey, 'Termina descarga', e.target.value)}
                   />
                   <FormField
-                    label="Volumen (m³)"
+                    label="Volumen (m3)"
                     type="number"
                     value={muestra['Volumen'] || ''}
                     onChange={(e) => handleMuestraChange(muestraKey, 'Volumen', e.target.value)}
                   />
                   <FormField
-                    label="Edad de garantía"
-                    value={muestra['Edad de garantía'] || ''}
-                    onChange={(e) => handleMuestraChange(muestraKey, 'Edad de garantía', e.target.value)}
+                    label="Edad de garantia"
+                    value={muestra['Edad de garantia'] || ''}
+                    onChange={(e) => handleMuestraChange(muestraKey, 'Edad de garantia', e.target.value)}
                   />
                   <FormField
-                    label="F'c (kg/cm²)"
+                    label="F'c (kg/cm2)"
                     type="number"
                     value={muestra["F'c"] || ''}
                     onChange={(e) => handleMuestraChange(muestraKey, "F'c", e.target.value)}
@@ -447,13 +481,13 @@ export default function InformeCampo() {
                     onChange={(e) => handleMuestraChange(muestraKey, 'Extensibilidad/Flujo de Rev. real', e.target.value)}
                   />
                   <FormField
-                    label="Temp Concreto (°C)"
+                    label="Temp Concreto (C)"
                     type="number"
                     value={muestra['Temp Concreto'] || ''}
                     onChange={(e) => handleMuestraChange(muestraKey, 'Temp Concreto', e.target.value)}
                   />
                   <FormField
-                    label="Temp Ambiente (°C)"
+                    label="Temp Ambiente (C)"
                     type="number"
                     value={muestra['Temp Ambiente'] || ''}
                     onChange={(e) => handleMuestraChange(muestraKey, 'Temp Ambiente', e.target.value)}
@@ -465,58 +499,91 @@ export default function InformeCampo() {
                     onChange={(e) => handleMuestraChange(muestraKey, 'Humedad', e.target.value)}
                   />
                   <FormField
-                    label="Localización"
-                    value={muestra['Localización'] || ''}
-                    onChange={(e) => handleMuestraChange(muestraKey, 'Localización', e.target.value)}
+                    label="Localizacion"
+                    value={muestra['Localizacion'] || ''}
+                    onChange={(e) => handleMuestraChange(muestraKey, 'Localizacion', e.target.value)}
                   />
                 </div>
               </div>
             )
           })}
 
-          <h3 className="text-lg font-semibold mb-4 mt-8">Firmas</h3>
-          <div className="grid grid-cols-1 gap-4">
-            <div>
-              <label className="form-label">Elaboró</label>
-              <input
+          <h3 className="text-lg font-semibold mb-4 mt-8">Firmas - Laboratorista</h3>
+          <div className="grid grid-cols-1 gap-4 p-4 bg-blue-50 border-l-4" style={{ borderLeftColor: '#3b82f6' }}>
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+              <FormField
+                label="Laboratorista (Nombre)"
+                name="Elaboro"
                 type="text"
-                value={formData['Elaboró'] || ''}
-                onChange={(e) => setFormData(prev => ({ ...prev, 'Elaboró': e.target.value }))}
-                className="form-input mb-2"
+                placeholder="Nombre"
+                value={formData['Elaboro']}
+                onChange={handleChange}
               />
-              <SignaturePad
-                onSignatureCapture={(sig) => handleSignature('Elaboró firma', sig)}
-                label="Firma Elaboró"
+              <FormField
+                label="Folio de Autorizacion"
+                name="Elaboro Folio"
+                type="text"
+                placeholder="Ingresa folio"
+                value={formData['Elaboro Folio']}
+                onChange={handleChange}
               />
             </div>
+            <SignaturePad
+              onSignatureCapture={(sig) => handleSignature('Elaboro firma', sig)}
+              label="Firma Laboratorista"
+            />
+          </div>
 
-            <div>
-              <label className="form-label">Solicita</label>
-              <input
+          <h3 className="text-lg font-semibold mb-4 mt-8">Firmas - Supervisor</h3>
+          <div className="grid grid-cols-1 gap-4 p-4 bg-green-50 border-l-4" style={{ borderLeftColor: '#10b981' }}>
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+              <FormField
+                label="Supervisor (Nombre)"
+                name="Solicita"
                 type="text"
-                value={formData['Solicita'] || ''}
-                onChange={(e) => setFormData(prev => ({ ...prev, 'Solicita': e.target.value }))}
-                className="form-input mb-2"
+                placeholder="Nombre"
+                value={formData['Solicita']}
+                onChange={handleChange}
               />
-              <SignaturePad
-                onSignatureCapture={(sig) => handleSignature('Solicita firma', sig)}
-                label="Firma Solicita"
+              <FormField
+                label="Folio de Autorizacion"
+                name="Solicita Folio"
+                type="text"
+                placeholder="Ingresa folio"
+                value={formData['Solicita Folio']}
+                onChange={handleChange}
               />
             </div>
+            <SignaturePad
+              onSignatureCapture={(sig) => handleSignature('Solicita firma', sig)}
+              label="Firma Supervisor"
+            />
+          </div>
 
-            <div>
-              <label className="form-label">Vo. Bo.</label>
-              <input
+          <h3 className="text-lg font-semibold mb-4 mt-8">Firmas - Visto Bueno</h3>
+          <div className="grid grid-cols-1 gap-4 p-4 bg-yellow-50 border-l-4" style={{ borderLeftColor: '#f59e0b' }}>
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+              <FormField
+                label="Vo. Bo. (Nombre)"
+                name="Vo. Bo."
                 type="text"
-                value={formData['Vo. Bo.'] || ''}
-                onChange={(e) => setFormData(prev => ({ ...prev, 'Vo. Bo.': e.target.value }))}
-                className="form-input mb-2"
+                placeholder="Nombre"
+                value={formData['Vo. Bo.']}
+                onChange={handleChange}
               />
-              <SignaturePad
-                onSignatureCapture={(sig) => handleSignature('Vo. Bo. firma', sig)}
-                label="Firma Vo. Bo."
+              <FormField
+                label="Folio de Autorizacion"
+                name="Vo. Bo. Folio"
+                type="text"
+                placeholder="Ingresa folio"
+                value={formData['Vo. Bo. Folio']}
+                onChange={handleChange}
               />
             </div>
+            <SignaturePad
+              onSignatureCapture={(sig) => handleSignature('Vo. Bo. firma', sig)}
+              label="Firma Visto Bueno"
+            />
           </div>
 
           <div className="flex gap-4 mt-8">
