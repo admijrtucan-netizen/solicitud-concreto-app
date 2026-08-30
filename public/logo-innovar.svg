@@ -1,14 +1,11 @@
-<svg viewBox="0 0 800 400" xmlns="http://www.w3.org/2000/svg">
+<svg viewBox="0 0 800 200" xmlns="http://www.w3.org/2000/svg" width="200" height="100">
   <!-- Círculo rojo -->
-  <circle cx="150" cy="200" r="130" fill="#B23D3D"/>
+  <circle cx="80" cy="100" r="70" fill="#B23D3D"/>
 
-  <!-- Líneas blancas en forma de X -->
-  <line x1="80" y1="130" x2="220" y2="270" stroke="white" stroke-width="35" stroke-linecap="round"/>
-  <line x1="220" y1="130" x2="80" y2="270" stroke="white" stroke-width="35" stroke-linecap="round"/>
+  <!-- Líneas blancas X -->
+  <line x1="40" y1="60" x2="120" y2="140" stroke="white" stroke-width="20" stroke-linecap="round"/>
+  <line x1="120" y1="60" x2="40" y2="140" stroke="white" stroke-width="20" stroke-linecap="round"/>
 
   <!-- Texto INNOVAR -->
-  <text x="320" y="200" font-family="Georgia, serif" font-size="120" font-weight="300" letter-spacing="8" fill="#000">INNOVAR</text>
-
-  <!-- Texto pequeño s.a. de c.v. -->
-  <text x="720" y="240" font-family="Arial, sans-serif" font-size="24" fill="#000">s.a. de c.v.</text>
+  <text x="200" y="110" font-family="Arial, sans-serif" font-size="80" font-weight="300" fill="#000">INNOVAR</text>
 </svg>

@@ -1,8 +1,8 @@
 import './globals.css'
 
 export const metadata = {
-  title: 'Sistema de Solicitudes y Reportes - Concreto Fresco',
-  description: 'App para registrar solicitudes de servicio y informes de campo',
+  title: 'INNOVAR - Concreto Fresco',
+  description: 'App para registrar solicitudes de servicio e informes de campo',
 }
 
 export default function RootLayout({ children }) {
