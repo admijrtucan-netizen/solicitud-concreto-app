@@ -3,9 +3,14 @@
 @tailwind utilities;
 
 :root {
-  --brand-red: #B23D3D;
-  --brand-red-light: #D4504A;
-  --brand-red-dark: #8B2E2E;
+  --brand-red: #8B3A3A;
+  --brand-red-light: #A84949;
+  --brand-red-dark: #6B2E2E;
+  --brand-black: #1f1f1f;
+  --brand-gray-dark: #374151;
+  --brand-gray-medium: #6b7280;
+  --brand-gray-light: #f3f4f6;
+  --brand-white: #ffffff;
 }
 
 * {
