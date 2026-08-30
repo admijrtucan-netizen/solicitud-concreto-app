@@ -1,7 +1,7 @@
 'use client'
 
 import { useState, useEffect } from 'react'
-import FormField from './FormField'
+import FormField from '@/components/FormField'
 
 export default function ClienteSelector({ value, onChange, onClienteSelect }) {
   const [clientes, setClientes] = useState([])

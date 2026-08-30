@@ -5,7 +5,7 @@ import { useRouter } from 'next/navigation'
 import Link from 'next/link'
 import FormField from '@/components/FormField'
 import TimeSelector from '@/components/TimeSelector'
-import ClienteSelector from '@/components/ClienteSelector'
+import ClienteSelector from '../../components/ClienteSelector'
 
 export default function OficinaSolicitud() {
   const router = useRouter()
