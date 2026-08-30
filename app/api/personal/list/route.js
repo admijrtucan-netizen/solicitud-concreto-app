@@ -42,10 +42,7 @@ export async function GET(request) {
 
     return Response.json({ personal })
   } catch (error) {
-    console.error('Error getting personal list:', error)
-    return Response.json(
-      { personal: [], error: error.message },
-      { status: 500 }
-    )
+    console.error('Error getting personal list:', error.message)
+    return Response.json({ personal: [] })
   }
 }
