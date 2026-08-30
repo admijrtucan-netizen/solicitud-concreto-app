@@ -1,0 +1,5 @@
+run = "npm run dev"
+entrypoint = "package.json"
+
+[env]
+NPM_CONFIG_PRODUCTION = "false"
