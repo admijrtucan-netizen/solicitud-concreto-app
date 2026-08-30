@@ -5,6 +5,7 @@ import { useRouter } from 'next/navigation'
 import Link from 'next/link'
 import FormField from '@/components/FormField'
 import TimeSelector from '@/components/TimeSelector'
+import ClienteSelector from '@/components/ClienteSelector'
 
 export default function OficinaSolicitud() {
   const router = useRouter()
@@ -208,17 +209,29 @@ export default function OficinaSolicitud() {
 
           <h3 className="text-lg font-semibold mb-4 mt-8 text-gray-900">Datos de la Empresa</h3>
 
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-            <FormField
-              label="Nombre de la Empresa"
-              name="Nombre de la empresa"
+          <div className="grid grid-cols-1 gap-4">
+            <ClienteSelector
               value={formData['Nombre de la empresa']}
               onChange={handleChange}
-              required
-              error={errors['Nombre de la empresa']}
+              onClienteSelect={(cliente) => {
+                setFormData(prev => ({
+                  ...prev,
+                  'Nombre de la empresa': cliente.nombre,
+                  'Tel de la empresa': cliente.telefono || prev['Tel de la empresa'],
+                  'Email de la empresa': cliente.email || prev['Email de la empresa'],
+                  'RFC de la empresa': cliente.rfc || prev['RFC de la empresa'],
+                  'Nombre del Contacto': cliente.contacto || prev['Nombre del Contacto'],
+                }))
+              }}
             />
+            {errors['Nombre de la empresa'] && (
+              <p className="text-xs text-red-600">{errors['Nombre de la empresa']}</p>
+            )}
+          </div>
+
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-4 mt-4">
             <FormField
-              label="Teléfono"
+              label="Telefono"
               name="Tel de la empresa"
               type="tel"
               value={formData['Tel de la empresa']}
