@@ -23,11 +23,10 @@ async function getAuthAndSheets() {
 export async function GET(request) {
   try {
     const { sheets } = await getAuthAndSheets()
-    const PERSONAL_SHEET = 'PERSONAL Y AUTORIZACI'
 
     const response = await sheets.spreadsheets.values.get({
       spreadsheetId: SPREADSHEET_ID,
-      range: `${PERSONAL_SHEET}!A2:D100`,
+      range: `'PERSONAL Y AUTORIZACI'!A2:D100`,
     })
 
     const values = response.data.values || []
