@@ -26,6 +26,16 @@ export default function OficinaSolicitud() {
     'Elemento a colar': '',
     'Volumen a colar (m³)': '',
     'Planta de premezclado': '',
+    'Cilindros': false,
+    'Vigas': false,
+    'Mortero': false,
+    'Cantidad de Muestras (1 Muestra = 4 Moldes)': '',
+    'Edad de ensayo': '',
+    'Resistencia del Concreto, F\'C (kg/cm²)': '',
+    'Tipo de Concreto': '',
+    'Revenimiento del proyecto (cm)': '',
+    'Tamaño Máximo del Agregado (mm)': '',
+    'Tiempo de entrega de Resultados': '',
     '¿La empresa realiza el servicio solicitado?': false,
     '¿La prueba solicitada está acreditada?': false,
     '¿Tenemos disponibilidad de personal y equipo para realizar el servicio solicitado en la fecha establecida?': false,
@@ -313,6 +323,91 @@ export default function OficinaSolicitud() {
               label="Planta de Premezclado"
               name="Planta de premezclado"
               value={formData['Planta de premezclado']}
+              onChange={handleChange}
+            />
+          </div>
+
+          <h3 className="text-lg font-semibold mb-4 mt-8 text-gray-900">Tipo de Muestra</h3>
+
+          <div className="space-y-3 mb-8">
+            <FormField
+              label="Cilindros"
+              name="Cilindros"
+              type="checkbox"
+              value={formData.Cilindros}
+              onChange={handleChange}
+            />
+            <FormField
+              label="Vigas"
+              name="Vigas"
+              type="checkbox"
+              value={formData.Vigas}
+              onChange={handleChange}
+            />
+            <FormField
+              label="Mortero"
+              name="Mortero"
+              type="checkbox"
+              value={formData.Mortero}
+              onChange={handleChange}
+            />
+          </div>
+
+          <h3 className="text-lg font-semibold mb-4 mt-8 text-gray-900">Propiedades del Concreto</h3>
+
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+            <FormField
+              label="Cantidad de Muestras (1 Muestra = 4 Moldes)"
+              name="Cantidad de Muestras (1 Muestra = 4 Moldes)"
+              type="number"
+              value={formData['Cantidad de Muestras (1 Muestra = 4 Moldes)']}
+              onChange={handleChange}
+            />
+            <FormField
+              label="Edad de Ensayo"
+              name="Edad de ensayo"
+              value={formData['Edad de ensayo']}
+              onChange={handleChange}
+              help="Ej: 5 dias, 7 dias"
+            />
+            <FormField
+              label="Resistencia F'C (kg/cm²)"
+              name="Resistencia del Concreto, F\'C (kg/cm²)"
+              type="number"
+              value={formData['Resistencia del Concreto, F\'C (kg/cm²)']}
+              onChange={handleChange}
+            />
+            <FormField
+              label="Tipo de Concreto"
+              name="Tipo de Concreto"
+              type="select"
+              value={formData['Tipo de Concreto']}
+              onChange={handleChange}
+              options={[
+                { value: '', label: '-- Seleccionar --' },
+                { value: 'N', label: 'N' },
+                { value: 'RR', label: 'RR' },
+              ]}
+            />
+            <FormField
+              label="Revenimiento (cm)"
+              name="Revenimiento del proyecto (cm)"
+              type="number"
+              value={formData['Revenimiento del proyecto (cm)']}
+              onChange={handleChange}
+            />
+            <FormField
+              label="Tamaño Máximo Agregado (mm)"
+              name="Tamaño Máximo del Agregado (mm)"
+              type="number"
+              value={formData['Tamaño Máximo del Agregado (mm)']}
+              onChange={handleChange}
+            />
+            <FormField
+              label="Tiempo de Entrega Resultados (días)"
+              name="Tiempo de entrega de Resultados"
+              type="number"
+              value={formData['Tiempo de entrega de Resultados']}
               onChange={handleChange}
             />
           </div>
