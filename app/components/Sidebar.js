@@ -9,30 +9,30 @@ export default function Sidebar() {
   const menuItems = [
     {
       label: 'Inicio',
-      icon: '🏠',
+      icon: 'H',
       href: '/',
     },
     {
       label: 'Nueva Solicitud',
-      icon: '📝',
+      icon: 'S',
       href: '/new-solicitud',
     },
     {
       label: 'Nuevo Informe',
-      icon: '📋',
+      icon: 'I',
       href: '/new-informe',
     },
     {
       label: 'Estatus',
-      icon: '📊',
+      icon: 'E',
       href: '/status',
     },
     {
       label: 'Documentos',
-      icon: '📂',
+      icon: 'D',
       children: [
-        { label: 'Solicitudes PDF', icon: '📄', href: 'https://drive.google.com/drive/u/1/folders/1nSqGJzjwHMSj9LRzJCipYLiDSvsO8G-i', external: true },
-        { label: 'Informes PDF', icon: '📄', href: 'https://drive.google.com/drive/u/1/folders/1ZkYjs4TxIv4viZlXxYbwbR9qSt72EyeT', external: true },
+        { label: 'Solicitudes PDF', icon: 'S', href: 'https://drive.google.com/drive/u/1/folders/1nSqGJzjwHMSj9LRzJCipYLiDSvsO8G-i', external: true },
+        { label: 'Informes PDF', icon: 'I', href: 'https://drive.google.com/drive/u/1/folders/1ZkYjs4TxIv4viZlXxYbwbR9qSt72EyeT', external: true },
       ]
     },
   ]

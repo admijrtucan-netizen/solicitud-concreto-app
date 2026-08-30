@@ -22,21 +22,18 @@ export default function Home() {
           title="En Proceso"
           value={stats.solicitudesEnProceso}
           subtitle="Solicitudes activas"
-          icon="⏳"
           color="var(--brand-red)"
         />
         <StatCard
           title="Completadas"
           value={stats.solicitudesCompletas}
           subtitle="Solicitudes finalizadas"
-          icon="✓"
           color="#10b981"
         />
         <StatCard
           title="Informes"
           value={stats.informesGenerados}
           subtitle="Informes de campo"
-          icon="📊"
           color="#3b82f6"
         />
       </div>
@@ -95,14 +92,12 @@ export default function Home() {
         <ActionCard
           title="SOLICITUD DE SERVICIO"
           description="Crear una nueva solicitud de servicio de concreto"
-          icon="📝"
           href="/new-solicitud"
           color="var(--brand-red)"
         />
         <ActionCard
           title="INFORME DE CAMPO"
           description="Registrar informe de campo y muestras de concreto"
-          icon="📋"
           href="/new-informe"
           color="#3b82f6"
         />
@@ -112,13 +107,11 @@ export default function Home() {
         <DocumentLink
           title="Plantillas de Solicitud"
           description="Acceder a documentos PDF de solicitudes"
-          icon="📄"
           href="https://drive.google.com/drive/u/1/folders/1nSqGJzjwHMSj9LRzJCipYLiDSvsO8G-i"
         />
         <DocumentLink
           title="Plantillas de Informes"
           description="Acceder a documentos PDF de informes"
-          icon="📄"
           href="https://drive.google.com/drive/u/1/folders/1ZkYjs4TxIv4viZlXxYbwbR9qSt72EyeT"
         />
       </div>
@@ -126,7 +119,7 @@ export default function Home() {
   )
 }
 
-function StatCard({ title, value, subtitle, icon, color }) {
+function StatCard({ title, value, subtitle, color }) {
   return (
     <div className="bg-white rounded-lg shadow-md p-6 border-l-4 hover:shadow-lg transition-shadow" style={{ borderLeftColor: color }}>
       <div className="flex items-start justify-between">
@@ -141,31 +134,27 @@ function StatCard({ title, value, subtitle, icon, color }) {
             {subtitle}
           </p>
         </div>
-        <div className="text-4xl opacity-20">{icon}</div>
       </div>
     </div>
   )
 }
 
-function ActionCard({ title, description, icon, href, color }) {
+function ActionCard({ title, description, href, color }) {
   return (
     <Link href={href}>
       <div
         className="bg-white rounded-lg shadow-md p-8 cursor-pointer hover:shadow-xl transition-all transform hover:scale-105 border-t-4"
         style={{ borderTopColor: color }}
       >
-        <div className="flex items-start gap-4">
-          <div className="text-5xl">{icon}</div>
-          <div className="flex-1">
-            <h3 className="text-xl font-bold mb-2" style={{ color: 'var(--brand-black)' }}>
-              {title}
-            </h3>
-            <p className="text-sm" style={{ color: 'var(--brand-gray-medium)' }}>
-              {description}
-            </p>
-          </div>
+        <div className="flex-1">
+          <h3 className="text-xl font-bold mb-2" style={{ color: 'var(--brand-black)' }}>
+            {title}
+          </h3>
+          <p className="text-sm mb-4" style={{ color: 'var(--brand-gray-medium)' }}>
+            {description}
+          </p>
         </div>
-        <div className="mt-4 text-sm font-medium" style={{ color }}>
+        <div className="text-sm font-medium" style={{ color }}>
           Ingresar →
         </div>
       </div>
@@ -173,16 +162,13 @@ function ActionCard({ title, description, icon, href, color }) {
   )
 }
 
-function DocumentLink({ title, description, icon, href }) {
+function DocumentLink({ title, description, href }) {
   return (
     <a href={href} target="_blank" rel="noopener noreferrer">
       <div className="bg-white rounded-lg shadow-md p-6 cursor-pointer hover:shadow-lg transition-shadow border border-gray-200">
-        <div className="flex items-center gap-3 mb-3">
-          <span className="text-3xl">{icon}</span>
-          <h3 className="text-lg font-bold" style={{ color: 'var(--brand-black)' }}>
-            {title}
-          </h3>
-        </div>
+        <h3 className="text-lg font-bold mb-3" style={{ color: 'var(--brand-black)' }}>
+          {title}
+        </h3>
         <p className="text-sm mb-4" style={{ color: 'var(--brand-gray-medium)' }}>
           {description}
         </p>

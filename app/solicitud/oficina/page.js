@@ -47,6 +47,8 @@ export default function OficinaSolicitud() {
   const [nextFolio, setNextFolio] = useState('INN-00001')
   const [errors, setErrors] = useState({})
   const [loading, setLoading] = useState(false)
+  const [folioExists, setFolioExists] = useState(false)
+  const [checkingFolio, setCheckingFolio] = useState(false)
 
   useEffect(() => {
     fetchNextFolio()
@@ -59,6 +61,28 @@ export default function OficinaSolicitud() {
       setNextFolio(`INN-${String(data.nextNumber).padStart(5, '0')}`)
     } catch (error) {
       console.error('Error fetching next folio:', error)
+    }
+  }
+
+  const validateFolio = async (folio) => {
+    if (!folio) {
+      setFolioExists(false)
+      return
+    }
+
+    setCheckingFolio(true)
+    try {
+      const res = await fetch('/api/folio/validate', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ folio }),
+      })
+      const data = await res.json()
+      setFolioExists(data.exists)
+    } catch (error) {
+      console.error('Error validating folio:', error)
+    } finally {
+      setCheckingFolio(false)
     }
   }
 
@@ -76,6 +100,9 @@ export default function OficinaSolicitud() {
   const validateForm = () => {
     const newErrors = {}
 
+    if (folioExists) {
+      newErrors['Folio'] = 'Este folio ya ha sido utilizado'
+    }
     if (!formData['Fecha de Solicitud']) newErrors['Fecha de Solicitud'] = 'Requerido'
     if (!formData['Fecha de Servicio']) newErrors['Fecha de Servicio'] = 'Requerido'
     if (!formData['Folio']) newErrors['Folio'] = 'Requerido'
@@ -172,10 +199,16 @@ export default function OficinaSolicitud() {
                     value={formData.Folio ? formData.Folio.replace('INN-', '') : ''}
                     onChange={(e) => {
                       const numbers = e.target.value.replace(/\D/g, '')
+                      const fullFolio = numbers ? `INN-${numbers}` : ''
                       setFormData(prev => ({
                         ...prev,
-                        Folio: numbers ? `INN-${numbers}` : '',
+                        Folio: fullFolio,
                       }))
+                      if (fullFolio) {
+                        validateFolio(fullFolio)
+                      } else {
+                        setFolioExists(false)
+                      }
                       if (errors['Folio']) {
                         setErrors(prev => ({ ...prev, Folio: null }))
                       }
@@ -194,7 +227,12 @@ export default function OficinaSolicitud() {
                 </button>
               </div>
               <p className="text-xs text-gray-500 mt-1">Solo números (ej: 34565)</p>
-              {errors['Folio'] && <p className="text-xs text-red-600">{errors['Folio']}</p>}
+              {folioExists && (
+                <div className="p-3 bg-red-100 border border-red-400 rounded mt-2 text-sm text-red-800">
+                  <strong>Advertencia:</strong> El folio {formData.Folio} ya ha sido utilizado. Por favor ingresa un folio diferente.
+                </div>
+              )}
+              {errors['Folio'] && <p className="text-xs text-red-600 mt-1">{errors['Folio']}</p>}
             </div>
 
             <TimeSelector
