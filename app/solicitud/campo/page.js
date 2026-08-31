@@ -14,20 +14,19 @@ export default function CampoSolicitud() {
   const [loading, setLoading] = useState(false)
   const [error, setError] = useState('')
 
-  const [formData, setFormData] = useState({
-    Cilindros: false,
-    Vigas: false,
-    Mortero: false,
-    'Cantidad de Muestras (1 Muestra = 4 Moldes)': '',
-    'Edad de ensayo': '',
-    'Resistencia del Concreto, F\'C (kg/cm²)': '',
-    'Tipo de Concreto': '',
-    'Revenimiento del proyecto (cm)': '',
-    'Tamaño Máximo del Agregado (mm)': '',
-    'Tiempo de entrega de Resultados': '',
-    'Persona que tomó los datos': '',
-  })
+  const CAMPOS_EDITABLES = [
+    'Volumen a colar (m³)',
+    'Cantidad de Muestras (1 Muestra = 4 Moldes)',
+    'Edad de ensayo',
+    'Resistencia del Concreto, F\'C (kg/cm²)',
+    'Tipo de Concreto',
+    'Revenimiento del proyecto (cm)',
+    'Tamaño Máximo del Agregado (mm)',
+    'Tiempo de entrega de Resultados',
+  ]
 
+  const [formData, setFormData] = useState({})
+  const [initialData, setInitialData] = useState({})
   const [errors, setErrors] = useState({})
   const [signature, setSignature] = useState(null)
   const [folios, setFolios] = useState([])
@@ -60,17 +59,28 @@ export default function CampoSolicitud() {
     try {
       const res = await fetch(`/api/solicitud/folio?folio=${folio}`)
       if (!res.ok) {
-        console.log('Folio no encontrado en API')
+        console.log('Folio no encontrado')
         setFolioData(null)
+        setFormData({})
+        setInitialData({})
       } else {
         const data = await res.json()
         console.log('Datos del folio:', data)
         setFolioData(data)
+
+        const precargados = {}
+        CAMPOS_EDITABLES.forEach(campo => {
+          precargados[campo] = data[campo] || ''
+        })
+        setFormData(precargados)
+        setInitialData(precargados)
       }
       setStep(2)
     } catch (err) {
-      console.error('Error fetching folio:', err)
+      console.error('Error:', err)
       setFolioData(null)
+      setFormData({})
+      setInitialData({})
       setStep(2)
     } finally {
       setLoading(false)
@@ -78,76 +88,54 @@ export default function CampoSolicitud() {
   }
 
   const handleChange = (e) => {
-    const { name, value, type, checked } = e.target
+    const { name, value } = e.target
     setFormData(prev => ({
       ...prev,
-      [name]: type === 'checkbox' ? checked : value,
+      [name]: value,
     }))
     if (errors[name]) {
       setErrors(prev => ({ ...prev, [name]: null }))
     }
   }
 
-  const validateForm = () => {
-    const newErrors = {}
-
-    if (!formData.Cilindros && !formData.Vigas && !formData.Mortero) {
-      newErrors['tipo_muestra'] = 'Debe seleccionar al menos un tipo'
-    }
-    if (!formData['Cantidad de Muestras (1 Muestra = 4 Moldes)']) {
-      newErrors['Cantidad de Muestras (1 Muestra = 4 Moldes)'] = 'Requerido'
-    }
-    if (!formData['Edad de ensayo']) {
-      newErrors['Edad de ensayo'] = 'Requerido'
-    }
-    if (!formData['Resistencia del Concreto, F\'C (kg/cm²)']) {
-      newErrors['Resistencia del Concreto, F\'C (kg/cm²)'] = 'Requerido'
-    }
-    if (!formData['Tipo de Concreto']) {
-      newErrors['Tipo de Concreto'] = 'Requerido'
-    }
-    if (!formData['Revenimiento del proyecto (cm)']) {
-      newErrors['Revenimiento del proyecto (cm)'] = 'Requerido'
-    }
-    if (!formData['Tamaño Máximo del Agregado (mm)']) {
-      newErrors['Tamaño Máximo del Agregado (mm)'] = 'Requerido'
-    }
-    if (!formData['Tiempo de entrega de Resultados']) {
-      newErrors['Tiempo de entrega de Resultados'] = 'Requerido'
-    }
-    if (!formData['Persona que tomó los datos']) {
-      newErrors['Persona que tomó los datos'] = 'Requerido'
-    }
-
-    setErrors(newErrors)
-    return Object.keys(newErrors).length === 0
+  const detectarCambios = () => {
+    return CAMPOS_EDITABLES.filter(campo =>
+      formData[campo] !== initialData[campo]
+    )
   }
 
-  const handleSignature = (imageData) => {
-    setSignature(imageData)
-  }
+  const cambios = detectarCambios()
 
   const handleSave = async () => {
-    if (!validateForm() || !signature) {
-      setErrors(prev => ({ ...prev, firma: !signature ? 'Firma es requerida' : prev.firma }))
+    if (!signature) {
+      setErrors(prev => ({ ...prev, firma: 'Firma es requerida' }))
       return
     }
 
     setLoading(true)
     try {
+      const datosGuardar = {
+        Folio: selectedFolio,
+        ...formData,
+        'Persona que tomó los datos': folioData?.['Persona que tomó los datos'] || '',
+        'Firma': signature,
+      }
+
+      if (cambios.length > 0) {
+        datosGuardar['Cambios'] = 'PENDIENTE NUEVA FIRMA'
+        datosGuardar['ETAPA'] = 'EN PROCESO'
+      } else {
+        datosGuardar['ETAPA'] = 'LISTO'
+      }
+
       const res = await fetch('/api/solicitud', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({
-          Folio: selectedFolio,
-          ...formData,
-          'Firma': signature,
-          ETAPA: 'LISTO',
-        }),
+        body: JSON.stringify(datosGuardar),
       })
 
       if (res.ok) {
-        alert('Informe de Campo guardado correctamente')
+        alert('Solicitud de Campo guardada correctamente')
         router.push('/')
       } else {
         alert('Error al guardar')
@@ -165,48 +153,31 @@ export default function CampoSolicitud() {
     return (
       <div className="max-w-2xl mx-auto">
         <div className="card">
-          <h2 className="text-2xl font-bold mb-2">
-            SOLICITUD DE SERVICIO - CAMPO
-          </h2>
+          <h2 className="text-2xl font-bold mb-2">SOLICITUD DE SERVICIO - CAMPO</h2>
           <p className="text-sm text-gray-600 mb-6">Paso 1: Seleccionar Folio</p>
 
           <div className="form-group">
-            <label className="form-label">
-              Seleccionar Folio
-              <span className="text-red-600 ml-1">*</span>
-            </label>
+            <label className="form-label">Seleccionar Folio *</label>
             {loadingFolios ? (
               <p className="text-sm text-gray-600">Cargando folios...</p>
             ) : folios.length === 0 ? (
-              <p className="text-sm text-red-600">No hay folios disponibles. Por favor, crea una solicitud en OFICINA primero.</p>
+              <p className="text-sm text-red-600">No hay folios. Crea una solicitud en OFICINA primero.</p>
             ) : (
               <select
                 value={selectedFolio}
                 onChange={(e) => setSelectedFolio(e.target.value)}
                 className="form-select"
               >
-                <option value="">-- Seleccionar un folio --</option>
+                <option value="">-- Seleccionar --</option>
                 {folios.map(folio => (
-                  <option key={folio} value={folio}>
-                    {folio}
-                  </option>
+                  <option key={folio} value={folio}>{folio}</option>
                 ))}
               </select>
             )}
           </div>
 
-          {error && (
-            <div className="bg-red-50 border border-red-200 text-red-700 px-4 py-3 rounded mb-4">
-              {error}
-            </div>
-          )}
-
           <div className="flex gap-4 mt-8">
-            <Link href="/">
-              <button type="button" className="btn btn-secondary">
-                Cancelar
-              </button>
-            </Link>
+            <Link href="/"><button type="button" className="btn btn-secondary">Cancelar</button></Link>
             <button
               onClick={() => selectedFolio && handleFolioSelect(selectedFolio)}
               disabled={!selectedFolio || loading}
@@ -220,193 +191,123 @@ export default function CampoSolicitud() {
     )
   }
 
-  // PASO 2: Confirmar datos y llenar informe
+  // PASO 2: Editar campos y firmar
   if (step === 2) {
     return (
       <div className="max-w-4xl mx-auto">
         <div className="card">
-          <h2 className="text-2xl font-bold mb-2">
-            SOLICITUD DE SERVICIO - CAMPO
-          </h2>
+          <h2 className="text-2xl font-bold mb-2">SOLICITUD DE SERVICIO - CAMPO</h2>
           <p className="text-sm text-gray-600 mb-6">Folio: {selectedFolio}</p>
 
-          {/* PREVIA DE DATOS */}
-          <div className="preview-section mb-8">
-            <h3 className="font-semibold mb-4 text-gray-900">Datos de la Solicitud (OFICINA)</h3>
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-4 text-sm">
-              <div>
-                <p className="text-gray-500">Fecha de Servicio</p>
-                <p className="font-medium">{folioData?.['Fecha de Servicio']}</p>
-              </div>
-              <div>
-                <p className="text-gray-500">Cliente (Empresa)</p>
-                <p className="font-medium">{folioData?.['Nombre de la empresa']}</p>
-              </div>
-              <div>
-                <p className="text-gray-500">Dirección de la Obra</p>
-                <p className="font-medium">{folioData?.['Dirección de la obra']}</p>
-              </div>
-              <div>
-                <p className="text-gray-500">Elemento a Colar</p>
-                <p className="font-medium">{folioData?.['Elemento a colar']}</p>
-              </div>
-              <div>
-                <p className="text-gray-500">Residente de Obra</p>
-                <p className="font-medium">{folioData?.['Nombre Residente de obra']}</p>
-              </div>
+          {cambios.length > 0 && (
+            <div className="p-4 bg-yellow-50 border border-yellow-300 rounded mb-6 text-yellow-800 text-sm">
+              <strong>Cambios detectados:</strong> {cambios.join(', ')} - Marca como PENDIENTE NUEVA FIRMA
             </div>
-            <button
-              onClick={() => setStep(1)}
-              className="btn btn-secondary mt-4 text-sm"
-            >
-              Cambiar Folio
-            </button>
+          )}
+
+          {/* DATOS DE OFICINA - READ ONLY */}
+          <div className="bg-gray-50 p-4 rounded mb-8 border-l-4" style={{ borderLeftColor: '#9ca3af' }}>
+            <h3 className="font-semibold mb-4 text-gray-900">Datos de la Solicitud (OFICINA - Solo Lectura)</h3>
+
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-4 text-sm">
+              {folioData && (
+                <>
+                  <FormField label="Fecha Solicitud" value={folioData['Fecha de Solicitud']} disabled />
+                  <FormField label="Folio" value={selectedFolio} disabled />
+                  <FormField label="Empresa" value={folioData['Nombre de la empresa']} disabled />
+                  <FormField label="Teléfono" value={folioData['Tel de la empresa']} disabled />
+                  <FormField label="Email" value={folioData['Email de la empresa']} disabled />
+                  <FormField label="RFC" value={folioData['RFC de la empresa']} disabled />
+                  <FormField label="Contacto" value={folioData['Nombre del Contacto']} disabled />
+                  <FormField label="Cel Contacto" value={folioData['Cel del Contacto']} disabled />
+                  <FormField label="Obra" value={folioData['Nombre de la Obra']} disabled />
+                  <FormField label="Dirección Obra" value={folioData['Dirección de la obra']} disabled />
+                  <FormField label="Residente" value={folioData['Nombre Residente de obra']} disabled />
+                  <FormField label="Cel Residente" value={folioData['Cel Residente de obra']} disabled />
+                  <FormField label="Elemento a Colar" value={folioData['Elemento a colar']} disabled />
+                  <FormField label="Planta" value={folioData['Planta de premezclado']} disabled />
+                </>
+              )}
+            </div>
           </div>
 
-          {/* FORMULARIO DE CAMPO */}
+          {/* CAMPOS EDITABLES */}
           <form noValidate>
-            <h3 className="text-lg font-semibold mb-4 text-gray-900">Tipo de Muestra</h3>
-
-            {errors['tipo_muestra'] && (
-              <p className="text-sm text-red-600 mb-4">{errors['tipo_muestra']}</p>
-            )}
-
-            <div className="space-y-3 mb-8">
-              <FormField
-                label="Cilindros"
-                name="Cilindros"
-                type="checkbox"
-                value={formData.Cilindros}
-                onChange={handleChange}
-              />
-              <FormField
-                label="Vigas"
-                name="Vigas"
-                type="checkbox"
-                value={formData.Vigas}
-                onChange={handleChange}
-              />
-              <FormField
-                label="Mortero"
-                name="Mortero"
-                type="checkbox"
-                value={formData.Mortero}
-                onChange={handleChange}
-              />
-            </div>
-
-            <h3 className="text-lg font-semibold mb-4 text-gray-900">Datos de Muestras</h3>
+            <h3 className="text-lg font-semibold mb-4 text-gray-900">Campos Editables (Puede cambiar si es necesario)</h3>
 
             <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
               <FormField
-                label="Cantidad de Muestras (1 Muestra = 4 Moldes)"
+                label="Volumen a Colar (m³)"
+                name="Volumen a colar (m³)"
+                type="number"
+                value={formData['Volumen a colar (m³)'] || ''}
+                onChange={handleChange}
+              />
+              <FormField
+                label="Cantidad de Muestras"
                 name="Cantidad de Muestras (1 Muestra = 4 Moldes)"
                 type="number"
-                value={formData['Cantidad de Muestras (1 Muestra = 4 Moldes)']}
+                value={formData['Cantidad de Muestras (1 Muestra = 4 Moldes)'] || ''}
                 onChange={handleChange}
-                required
-                error={errors['Cantidad de Muestras (1 Muestra = 4 Moldes)']}
               />
               <FormField
                 label="Edad de Ensayo"
                 name="Edad de ensayo"
-                value={formData['Edad de ensayo']}
+                value={formData['Edad de ensayo'] || ''}
                 onChange={handleChange}
-                required
-                error={errors['Edad de ensayo']}
-                help="Ej: 5 dias, 7 dias"
               />
-            </div>
-
-            <h3 className="text-lg font-semibold mb-4 mt-8 text-gray-900">Propiedades del Concreto</h3>
-
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
               <FormField
-                label="Resistencia del Concreto, F'C (kg/cm²)"
-                name="Resistencia del Concreto, F'C (kg/cm²)"
+                label="Resistencia F'C (kg/cm²)"
+                name="Resistencia del Concreto, F\'C (kg/cm²)"
                 type="number"
-                value={formData['Resistencia del Concreto, F\'C (kg/cm²)']}
+                value={formData['Resistencia del Concreto, F\'C (kg/cm²)'] || ''}
                 onChange={handleChange}
-                required
-                error={errors['Resistencia del Concreto, F\'C (kg/cm²)']}
               />
               <FormField
                 label="Tipo de Concreto"
                 name="Tipo de Concreto"
                 type="select"
-                value={formData['Tipo de Concreto']}
+                value={formData['Tipo de Concreto'] || ''}
                 onChange={handleChange}
-                required
-                error={errors['Tipo de Concreto']}
                 options={[
                   { value: 'N', label: 'N' },
                   { value: 'RR', label: 'RR' },
                 ]}
               />
               <FormField
-                label="Revenimiento del Proyecto (cm)"
+                label="Revenimiento (cm)"
                 name="Revenimiento del proyecto (cm)"
                 type="number"
-                value={formData['Revenimiento del proyecto (cm)']}
+                value={formData['Revenimiento del proyecto (cm)'] || ''}
                 onChange={handleChange}
-                required
-                error={errors['Revenimiento del proyecto (cm)']}
               />
               <FormField
-                label="Tamaño Máximo del Agregado (mm)"
+                label="TMA (mm)"
                 name="Tamaño Máximo del Agregado (mm)"
                 type="number"
-                value={formData['Tamaño Máximo del Agregado (mm)']}
+                value={formData['Tamaño Máximo del Agregado (mm)'] || ''}
                 onChange={handleChange}
-                required
-                error={errors['Tamaño Máximo del Agregado (mm)']}
               />
-            </div>
-
-            <h3 className="text-lg font-semibold mb-4 mt-8 text-gray-900">Información Adicional</h3>
-
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
               <FormField
-                label="Tiempo de Entrega de Resultados"
+                label="Tiempo Entrega Resultados (días)"
                 name="Tiempo de entrega de Resultados"
                 type="number"
-                value={formData['Tiempo de entrega de Resultados']}
+                value={formData['Tiempo de entrega de Resultados'] || ''}
                 onChange={handleChange}
-                required
-                error={errors['Tiempo de entrega de Resultados']}
-                help="Solo números (días)"
-              />
-              <FormField
-                label="Persona que Tomó los Datos"
-                name="Persona que tomó los datos"
-                value={formData['Persona que tomó los datos']}
-                onChange={handleChange}
-                required
-                error={errors['Persona que tomó los datos']}
               />
             </div>
 
-            <h3 className="text-lg font-semibold mb-4 mt-8 text-gray-900">Firma Digital</h3>
-
-            <SignaturePad onSignatureCapture={handleSignature} label="Firma de Campo" />
+            <h3 className="text-lg font-semibold mb-4 mt-8 text-gray-900">Firma de Campo</h3>
+            <SignaturePad onSignatureCapture={(sig) => setSignature(sig)} label="Firma (OBLIGATORIA)" />
             {errors['firma'] && <p className="text-sm text-red-600 mb-4">{errors['firma']}</p>}
             {signature && <p className="text-sm text-green-600 mb-4">Firma capturada</p>}
 
             <div className="flex gap-4 mt-8">
-              <button
-                type="button"
-                onClick={() => setStep(1)}
-                className="btn btn-secondary"
-              >
+              <button type="button" onClick={() => setStep(1)} className="btn btn-secondary">
                 Cambiar Folio
               </button>
-              <button
-                type="button"
-                onClick={handleSave}
-                disabled={loading}
-                className="btn btn-primary disabled:opacity-50"
-              >
-                {loading ? 'Guardando...' : 'Guardar Informe de Campo'}
+              <button type="button" onClick={handleSave} disabled={loading} className="btn btn-primary disabled:opacity-50">
+                {loading ? 'Guardando...' : 'Guardar Solicitud de Campo'}
               </button>
             </div>
           </form>
