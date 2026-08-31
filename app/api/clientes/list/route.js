@@ -26,24 +26,26 @@ export async function GET(request) {
 
     const response = await sheets.spreadsheets.values.get({
       spreadsheetId: SPREADSHEET_ID,
-      range: `'BD_CLIENTES'!A2:H1000`,
+      range: `'BD_CLIENTES'!A2:F1000`,
     })
 
     const values = response.data.values || []
     const clientes = values
-      .filter(row => row && row[0])
+      .filter(row => row && row[0] && row[0].trim())
       .map(row => ({
-        nombre: row[0],
-        telefono: row[1] || '',
-        email: row[2] || '',
-        rfc: row[3] || '',
-        contacto: row[4] || '',
-        fecha: row[5] || '',
+        nombre: row[0]?.trim() || '',
+        telefono: row[1]?.trim() || '',
+        email: row[2]?.trim() || '',
+        rfc: row[3]?.trim() || '',
+        contacto: row[4]?.trim() || '',
+        fecha: row[5]?.trim() || '',
       }))
+      .filter(c => c.nombre)
 
+    console.log('Clientes encontrados:', clientes.length)
     return Response.json({ clientes })
   } catch (error) {
     console.error('Error getting clientes list:', error.message)
-    return Response.json({ clientes: [] })
+    return Response.json({ clientes: [], error: error.message })
   }
 }
