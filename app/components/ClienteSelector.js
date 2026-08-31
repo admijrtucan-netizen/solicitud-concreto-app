@@ -94,7 +94,6 @@ export default function ClienteSelector({ value, onChange, onClienteSelect }) {
           <select
             value={value || ''}
             onChange={(e) => {
-              // Encontrar cliente seleccionado y llenar datos
               const selectedCliente = clientes.find(c => c.nombre === e.target.value)
               if (selectedCliente) {
                 onChange({
@@ -103,7 +102,7 @@ export default function ClienteSelector({ value, onChange, onClienteSelect }) {
                 if (onClienteSelect) {
                   onClienteSelect(selectedCliente)
                 }
-              } else {
+              } else if (e.target.value) {
                 onChange({
                   target: { name: 'Nombre de la empresa', value: e.target.value }
                 })
