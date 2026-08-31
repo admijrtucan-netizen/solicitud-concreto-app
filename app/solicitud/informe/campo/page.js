@@ -6,16 +6,23 @@ import Link from 'next/link'
 import FormField from '@/components/FormField'
 import TimeSelector from '@/components/TimeSelector'
 import SignaturePad from '@/components/SignaturePad'
+import ResidenteFolioValidator from '@/components/ResidenteFolioValidator'
+import MuestraRevendimiento from '@/components/MuestraRevendimiento'
 
 export default function InformeCampo() {
   const router = useRouter()
-  const [cantMuestras, setCantMuestras] = useState(1)
   const [loading, setLoading] = useState(false)
   const [step, setStep] = useState(1)
   const [selectedFolio, setSelectedFolio] = useState('')
   const [folios, setFolios] = useState([])
   const [loadingFolios, setLoadingFolios] = useState(true)
   const [personal, setPersonal] = useState([])
+  const [residenteFolioValid, setResidenteFolioValid] = useState(false)
+  const [residenteNombre, setResidenteNombre] = useState('')
+  const [residenteEmail, setResidenteEmail] = useState('')
+  const [residenteFolio, setResidenteFolio] = useState('')
+  const [clientePreview, setClientePreview] = useState(null)
+  const [folioError, setFolioError] = useState('')
 
   useEffect(() => {
     fetchFolios()
@@ -48,8 +55,42 @@ export default function InformeCampo() {
     }
   }
 
-  const handleFolioSelect = () => {
-    if (selectedFolio) setStep(2)
+  const handleFolioSelect = async () => {
+    if (!selectedFolio) return
+
+    // Validar que el folio existe
+    try {
+      const res = await fetch('/api/folio/validate', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ folio: selectedFolio }),
+      })
+
+      const data = await res.json()
+
+      if (!data.exists) {
+        setFolioError(`❌ El folio ${selectedFolio} no existe o no es válido`)
+        setClientePreview(null)
+        return
+      }
+
+      // Cargar datos del cliente
+      const resData = await fetch('/api/solicitud-data', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ folio: selectedFolio }),
+      })
+
+      if (resData.ok) {
+        const clienteData = await resData.json()
+        setClientePreview(clienteData)
+        setFolioError('')
+        setStep(2)
+      }
+    } catch (error) {
+      setFolioError('Error al validar folio')
+      console.error(error)
+    }
   }
 
   const [formData, setFormData] = useState({
@@ -62,7 +103,6 @@ export default function InformeCampo() {
     'Molde No.': '',
     'Mazo No.': '',
     'Cucharon No.': '',
-    'Volumen de esta hoja': '',
     'Volumen total': '',
     'Ensazador No.': '',
     'Felx No.': '',
@@ -90,37 +130,27 @@ export default function InformeCampo() {
     'Vo. Bo. firma': null,
   })
 
-  const [muestras, setMuestras] = useState({})
+  const [muestras, setMuestras] = useState([
+    { tipo: 'MUESTRA' }
+  ])
 
-  useEffect(() => {
-    inicializarMuestras()
-  }, [cantMuestras])
-
-  const inicializarMuestras = () => {
-    const newMuestras = {}
-    for (let i = 1; i <= cantMuestras; i++) {
-      newMuestras[`M${i}`] = {
-        'No. Muestra': '',
-        'No. Camion': '',
-        'No. de Remision': '',
-        'Salida Planta': '',
-        'Llegada a obra': '',
-        'Inicio descarga': '',
-        'Termina descarga': '',
-        'Volumen': '',
-        'Edad de garantia': '',
-        "F'c": '',
-        'TMA': '',
-        'Extensibilidad/Flujo de Rev.': '',
-        'Revenimiento real': '',
-        'Extensibilidad/Flujo de Rev. real': '',
-        'Temp Concreto': '',
-        'Temp Ambiente': '',
-        'Humedad': '',
-        'Localizacion': '',
-      }
-    }
+  const handleMuestraChange = (index, data) => {
+    const newMuestras = [...muestras]
+    newMuestras[index] = data
     setMuestras(newMuestras)
+  }
+
+  const handleAgregarMuestra = () => {
+    if (muestras.length < 100) {
+      setMuestras([...muestras, { tipo: 'MUESTRA' }])
+    }
+  }
+
+  const handleEliminarMuestra = (index) => {
+    if (muestras.length > 1) {
+      const newMuestras = muestras.filter((_, i) => i !== index)
+      setMuestras(newMuestras)
+    }
   }
 
   const handleChange = (e) => {
@@ -137,15 +167,6 @@ export default function InformeCampo() {
     }))
   }
 
-  const handleMuestraChange = (muestra, field, value) => {
-    setMuestras(prev => ({
-      ...prev,
-      [muestra]: {
-        ...prev[muestra],
-        [field]: value,
-      },
-    }))
-  }
 
   const handleSignature = (field, imageData) => {
     setSignatures(prev => ({
@@ -155,6 +176,16 @@ export default function InformeCampo() {
   }
 
   const handleSave = async () => {
+    if (!residenteFolioValid) {
+      alert('El folio del residente debe ser validado primero')
+      return
+    }
+
+    if (!signatures['Solicita firma']) {
+      alert('La firma del residente es obligatoria')
+      return
+    }
+
     if (!formData['Elaboro Folio'] || !formData['Solicita Folio'] || !formData['Vo. Bo. Folio']) {
       alert('Por favor ingresa todos los folios de autorizacion')
       return
@@ -162,12 +193,74 @@ export default function InformeCampo() {
 
     setLoading(true)
     try {
+      // Subir firmas a Google Drive
+      const signatureUrls = {}
+      for (const [signatureType, signatureData] of Object.entries(signatures)) {
+        if (signatureData) {
+          const uploadRes = await fetch('/api/signatures/upload-to-drive', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({
+              folio: selectedFolio,
+              signatureType: signatureType,
+              signatureBase64: signatureData,
+              nombreResidente: residenteNombre,
+            }),
+          })
+
+          if (uploadRes.ok) {
+            const uploadData = await uploadRes.json()
+            signatureUrls[signatureType] = uploadData.fileUrl
+          }
+        }
+      }
+
+      // Convertir array de muestras a formato M1, M2, M3... para Sheets
+      const muestrasPlanas = {}
+      muestras.forEach((muestra, idx) => {
+        const mNum = idx + 1
+        if (muestra.tipo) {
+          muestrasPlanas[`M${mNum} Tipo`] = muestra.tipo
+        }
+        // Campos comunes
+        if (muestra.noMuestra) muestrasPlanas[`M${mNum} No. Muestra`] = muestra.noMuestra
+        if (muestra.noCamion) muestrasPlanas[`M${mNum} No. Camión`] = muestra.noCamion
+        if (muestra.noRemision) muestrasPlanas[`M${mNum} No. de Remisión`] = muestra.noRemision
+        if (muestra.salidaPlanta) muestrasPlanas[`M${mNum} Salida Planta`] = muestra.salidaPlanta
+        if (muestra.llegadaObra) muestrasPlanas[`M${mNum} Llegada a obra`] = muestra.llegadaObra
+        if (muestra.inicioDescarga) muestrasPlanas[`M${mNum} Inicio descarga`] = muestra.inicioDescarga
+        if (muestra.terminaDescarga) muestrasPlanas[`M${mNum} Termina descarga`] = muestra.terminaDescarga
+        if (muestra.volumen) muestrasPlanas[`M${mNum} Volumen (m³)`] = muestra.volumen
+
+        // Campos MUESTRA
+        if (muestra.tipo === 'MUESTRA') {
+          if (muestra.fc) muestrasPlanas[`M${mNum} F'c (kg/cm²)`] = muestra.fc
+          if (muestra.tma) muestrasPlanas[`M${mNum} TMA (mm)`] = muestra.tma
+          if (muestra.revenimientoReal) muestrasPlanas[`M${mNum} Revenimiento real (cm)`] = muestra.revenimientoReal
+        }
+
+        // Campos REVENDIMIENTO
+        if (muestra.tipo === 'REVENDIMIENTO') {
+          if (muestra.edadGarantia) muestrasPlanas[`M${mNum} Edad de garantía`] = muestra.edadGarantia
+          if (muestra.extensibilidad) muestrasPlanas[`M${mNum} Extensibilidad/Flujo de Rev. (cm)`] = muestra.extensibilidad
+          if (muestra.extensibilidadReal) muestrasPlanas[`M${mNum} Extensibilidad/Flujo de Rev. real (cm)`] = muestra.extensibilidadReal
+          // Guardar solo el tipo sin la "T" (D en lugar de TD, B en lugar de TB)
+          const tipoD = (muestra.termoConcretoTipo || 'TD').replace('T', '')
+          const tipoB = (muestra.termoAmbienteTipo || 'TD').replace('T', '')
+          if (muestra.tempConcretoValue) muestrasPlanas[`M${mNum} Temp Concreto`] = `${tipoD}; ${muestra.tempConcretoValue}°C`
+          if (muestra.tempAmbienteValue) muestrasPlanas[`M${mNum} Temp Ambiente (°C)`] = `${tipoB}; ${muestra.tempAmbienteValue}°C`
+        }
+      })
+
       const dataToSave = {
         ...formData,
-        'Cant. de Muestras Completas': cantMuestras,
+        'Cant. de Muestras Completas': muestras.length,
         'FOLIO TUCAN': selectedFolio,
-        ...signatures,
-        muestras,
+        'Nombre Residente': residenteNombre,
+        'Email Residente': residenteEmail,
+        'Folio Residente': residenteFolio,
+        ...signatureUrls,
+        ...muestrasPlanas,
         ETAPA: 'LISTO',
       }
 
@@ -205,7 +298,11 @@ export default function InformeCampo() {
             ) : (
               <select
                 value={selectedFolio}
-                onChange={(e) => setSelectedFolio(e.target.value)}
+                onChange={(e) => {
+                  setSelectedFolio(e.target.value)
+                  setFolioError('')
+                  setClientePreview(null)
+                }}
                 className="form-select"
               >
                 <option value="">-- Seleccionar un folio --</option>
@@ -215,6 +312,36 @@ export default function InformeCampo() {
               </select>
             )}
           </div>
+
+          {folioError && (
+            <div className="mt-4 p-4 bg-red-100 border border-red-300 rounded text-sm text-red-700">
+              {folioError}
+            </div>
+          )}
+
+          {clientePreview && (
+            <div className="mt-6 p-4 bg-blue-50 border border-blue-300 rounded">
+              <h3 className="font-bold text-blue-900 mb-3">📋 Datos de la Solicitud</h3>
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-4 text-sm">
+                <div>
+                  <p className="text-gray-600">Empresa:</p>
+                  <p className="font-semibold">{clientePreview['Nombre de la empresa']}</p>
+                </div>
+                <div>
+                  <p className="text-gray-600">Obra:</p>
+                  <p className="font-semibold">{clientePreview['Dirección de la obra']}</p>
+                </div>
+                <div>
+                  <p className="text-gray-600">Residente:</p>
+                  <p className="font-semibold">{clientePreview['Nombre Residente de obra']}</p>
+                </div>
+                <div>
+                  <p className="text-gray-600">Fecha de Servicio:</p>
+                  <p className="font-semibold">{clientePreview['Fecha de Servicio']}</p>
+                </div>
+              </div>
+            </div>
+          )}
 
           <div className="flex gap-4 mt-8">
             <Link href="/solicitud/informe">
@@ -253,17 +380,16 @@ export default function InformeCampo() {
             />
           </div>
 
-          <h3 className="text-lg font-semibold mb-4 mt-8">Email Residente de Obra</h3>
-          <div className="grid grid-cols-1 gap-4">
-            <FormField
-              label="Email Residente"
-              name="Email Residente"
-              type="email"
-              placeholder="residente@example.com"
-              value={formData['Email Residente']}
-              onChange={handleChange}
-            />
-          </div>
+          <h3 className="text-lg font-semibold mb-4 mt-8">Validación de Residente</h3>
+          <ResidenteFolioValidator
+            value={residenteFolio}
+            onChange={setResidenteFolio}
+            onValidate={setResidenteFolioValid}
+            nombreValue={residenteNombre}
+            emailValue={residenteEmail}
+            onNombreChange={setResidenteNombre}
+            onEmailChange={setResidenteEmail}
+          />
 
           <h3 className="text-lg font-semibold mb-4 mt-8">Equipos</h3>
           <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
@@ -317,15 +443,8 @@ export default function InformeCampo() {
             />
           </div>
 
-          <h3 className="text-lg font-semibold mb-4 mt-8">Volumen y Placas</h3>
+          <h3 className="text-lg font-semibold mb-4 mt-8">Placas y Equipos de Medición</h3>
           <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-            <FormField
-              label="Volumen de esta hoja (m3)"
-              name="Volumen de esta hoja"
-              type="number"
-              value={formData['Volumen de esta hoja']}
-              onChange={handleChange}
-            />
             <FormField
               label="Volumen total (m3)"
               name="Volumen total"
@@ -391,134 +510,47 @@ export default function InformeCampo() {
             onChange={handleChange}
           />
 
-          {Array.from({ length: cantMuestras }).map((_, idx) => {
-            const muestraNum = idx + 1
-            const muestraKey = `M${muestraNum}`
-            const muestra = muestras[muestraKey] || {}
+          <h3 className="text-lg font-semibold mb-4 mt-8">Muestras y Revendimientos ({muestras.length}/100)</h3>
 
-            return (
-              <div key={muestraKey} className="mt-8 pt-8 border-t-2 border-gray-200">
-                <h3 className="text-lg font-semibold mb-4">Muestra {muestraNum}</h3>
-                <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                  <FormField
-                    label="No. Muestra"
-                    value={muestra['No. Muestra'] || ''}
-                    onChange={(e) => handleMuestraChange(muestraKey, 'No. Muestra', e.target.value)}
-                  />
-                  <FormField
-                    label="No. Camion"
-                    value={muestra['No. Camion'] || ''}
-                    onChange={(e) => handleMuestraChange(muestraKey, 'No. Camion', e.target.value)}
-                  />
-                  <FormField
-                    label="No. de Remision"
-                    value={muestra['No. de Remision'] || ''}
-                    onChange={(e) => handleMuestraChange(muestraKey, 'No. de Remision', e.target.value)}
-                  />
-                  <FormField
-                    label="Salida Planta"
-                    type="time"
-                    value={muestra['Salida Planta'] || ''}
-                    onChange={(e) => handleMuestraChange(muestraKey, 'Salida Planta', e.target.value)}
-                  />
-                  <FormField
-                    label="Llegada a obra"
-                    type="time"
-                    value={muestra['Llegada a obra'] || ''}
-                    onChange={(e) => handleMuestraChange(muestraKey, 'Llegada a obra', e.target.value)}
-                  />
-                  <FormField
-                    label="Inicio descarga"
-                    type="time"
-                    value={muestra['Inicio descarga'] || ''}
-                    onChange={(e) => handleMuestraChange(muestraKey, 'Inicio descarga', e.target.value)}
-                  />
-                  <FormField
-                    label="Termina descarga"
-                    type="time"
-                    value={muestra['Termina descarga'] || ''}
-                    onChange={(e) => handleMuestraChange(muestraKey, 'Termina descarga', e.target.value)}
-                  />
-                  <FormField
-                    label="Volumen (m3)"
-                    type="number"
-                    value={muestra['Volumen'] || ''}
-                    onChange={(e) => handleMuestraChange(muestraKey, 'Volumen', e.target.value)}
-                  />
-                  <FormField
-                    label="Edad de garantia"
-                    value={muestra['Edad de garantia'] || ''}
-                    onChange={(e) => handleMuestraChange(muestraKey, 'Edad de garantia', e.target.value)}
-                  />
-                  <FormField
-                    label="F'c (kg/cm2)"
-                    type="number"
-                    value={muestra["F'c"] || ''}
-                    onChange={(e) => handleMuestraChange(muestraKey, "F'c", e.target.value)}
-                  />
-                  <FormField
-                    label="TMA (mm)"
-                    type="number"
-                    value={muestra['TMA'] || ''}
-                    onChange={(e) => handleMuestraChange(muestraKey, 'TMA', e.target.value)}
-                  />
-                  <FormField
-                    label="Extensibilidad/Flujo de Rev. (cm)"
-                    type="number"
-                    value={muestra['Extensibilidad/Flujo de Rev.'] || ''}
-                    onChange={(e) => handleMuestraChange(muestraKey, 'Extensibilidad/Flujo de Rev.', e.target.value)}
-                  />
-                  <FormField
-                    label="Revenimiento real (cm)"
-                    type="number"
-                    value={muestra['Revenimiento real'] || ''}
-                    onChange={(e) => handleMuestraChange(muestraKey, 'Revenimiento real', e.target.value)}
-                  />
-                  <FormField
-                    label="Extensibilidad/Flujo de Rev. real (cm)"
-                    type="number"
-                    value={muestra['Extensibilidad/Flujo de Rev. real'] || ''}
-                    onChange={(e) => handleMuestraChange(muestraKey, 'Extensibilidad/Flujo de Rev. real', e.target.value)}
-                  />
-                  <FormField
-                    label="Temp Concreto (C)"
-                    type="number"
-                    value={muestra['Temp Concreto'] || ''}
-                    onChange={(e) => handleMuestraChange(muestraKey, 'Temp Concreto', e.target.value)}
-                  />
-                  <FormField
-                    label="Temp Ambiente (C)"
-                    type="number"
-                    value={muestra['Temp Ambiente'] || ''}
-                    onChange={(e) => handleMuestraChange(muestraKey, 'Temp Ambiente', e.target.value)}
-                  />
-                  <FormField
-                    label="Humedad (%)"
-                    type="number"
-                    value={muestra['Humedad'] || ''}
-                    onChange={(e) => handleMuestraChange(muestraKey, 'Humedad', e.target.value)}
-                  />
-                  <FormField
-                    label="Localizacion"
-                    value={muestra['Localizacion'] || ''}
-                    onChange={(e) => handleMuestraChange(muestraKey, 'Localizacion', e.target.value)}
-                  />
-                </div>
-              </div>
-            )
-          })}
+          {muestras.map((muestra, idx) => (
+            <MuestraRevendimiento
+              key={idx}
+              index={idx}
+              data={muestra}
+              onChange={handleMuestraChange}
+              onRemove={handleEliminarMuestra}
+              isLast={idx === muestras.length - 1}
+            />
+          ))}
+
+          {muestras.length < 100 && (
+            <button
+              type="button"
+              onClick={handleAgregarMuestra}
+              className="mt-6 px-6 py-2 bg-green-600 text-white rounded hover:bg-green-700 font-medium"
+            >
+              + Agregar Muestra/Revendimiento
+            </button>
+          )}
 
           <h3 className="text-lg font-semibold mb-4 mt-8">Firmas - Laboratorista</h3>
           <div className="grid grid-cols-1 gap-4 p-4 bg-blue-50 border-l-4" style={{ borderLeftColor: '#3b82f6' }}>
             <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-              <FormField
-                label="Laboratorista (Nombre)"
-                name="Elaboro"
-                type="text"
-                placeholder="Nombre"
-                value={formData['Elaboro']}
-                onChange={handleChange}
-              />
+              <div>
+                <label className="form-label">Laboratorista</label>
+                <select
+                  value={formData['Elaboro'] || ''}
+                  onChange={(e) => handleChange({
+                    target: { name: 'Elaboro', value: e.target.value }
+                  })}
+                  className="form-select"
+                >
+                  <option value="">-- Seleccionar laboratorista --</option>
+                  {personal.map((p, idx) => (
+                    <option key={idx} value={p}>{p}</option>
+                  ))}
+                </select>
+              </div>
               <FormField
                 label="Folio de Autorizacion"
                 name="Elaboro Folio"
@@ -534,15 +566,21 @@ export default function InformeCampo() {
             />
           </div>
 
-          <h3 className="text-lg font-semibold mb-4 mt-8">Firmas - Supervisor</h3>
+          <h3 className="text-lg font-semibold mb-4 mt-8">Firmas - Residente de Obra</h3>
           <div className="grid grid-cols-1 gap-4 p-4 bg-green-50 border-l-4" style={{ borderLeftColor: '#10b981' }}>
+            <div className="mb-3 p-3 bg-green-100 border border-green-300 rounded text-sm">
+              <p className="font-semibold text-green-800">
+                {residenteFolioValid ? '✓ Residente validado' : '⚠️ Residente no validado'}
+              </p>
+              <p className="text-gray-700">{residenteNombre || 'Nombre del residente'}</p>
+            </div>
             <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
               <FormField
-                label="Supervisor (Nombre)"
+                label="Nombre Residente"
                 name="Solicita"
                 type="text"
-                placeholder="Nombre"
-                value={formData['Solicita']}
+                placeholder={residenteNombre || 'Nombre'}
+                value={formData['Solicita'] || residenteNombre}
                 onChange={handleChange}
               />
               <FormField
@@ -556,21 +594,33 @@ export default function InformeCampo() {
             </div>
             <SignaturePad
               onSignatureCapture={(sig) => handleSignature('Solicita firma', sig)}
-              label="Firma Supervisor"
+              label="Firma Residente (OBLIGATORIA)"
             />
+            {!signatures['Solicita firma'] && (
+              <div className="mt-2 p-2 bg-red-100 border border-red-300 rounded text-sm text-red-700">
+                ⚠️ La firma del residente es obligatoria para autorizar esta operación
+              </div>
+            )}
           </div>
 
-          <h3 className="text-lg font-semibold mb-4 mt-8">Firmas - Visto Bueno</h3>
+          <h3 className="text-lg font-semibold mb-4 mt-8">Firmas - Supervisor de Laboratorio</h3>
           <div className="grid grid-cols-1 gap-4 p-4 bg-yellow-50 border-l-4" style={{ borderLeftColor: '#f59e0b' }}>
             <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-              <FormField
-                label="Vo. Bo. (Nombre)"
-                name="Vo. Bo."
-                type="text"
-                placeholder="Nombre"
-                value={formData['Vo. Bo.']}
-                onChange={handleChange}
-              />
+              <div>
+                <label className="form-label">Supervisor de Laboratorio</label>
+                <select
+                  value={formData['Vo. Bo.'] || ''}
+                  onChange={(e) => handleChange({
+                    target: { name: 'Vo. Bo.', value: e.target.value }
+                  })}
+                  className="form-select"
+                >
+                  <option value="">-- Seleccionar supervisor --</option>
+                  {personal.map((p, idx) => (
+                    <option key={idx} value={p}>{p}</option>
+                  ))}
+                </select>
+              </div>
               <FormField
                 label="Folio de Autorizacion"
                 name="Vo. Bo. Folio"
@@ -582,7 +632,7 @@ export default function InformeCampo() {
             </div>
             <SignaturePad
               onSignatureCapture={(sig) => handleSignature('Vo. Bo. firma', sig)}
-              label="Firma Visto Bueno"
+              label="Firma Supervisor de Laboratorio"
             />
           </div>
 

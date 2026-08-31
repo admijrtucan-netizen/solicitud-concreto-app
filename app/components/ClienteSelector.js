@@ -92,8 +92,23 @@ export default function ClienteSelector({ value, onChange, onClienteSelect }) {
         <label className="form-label">Nombre de la Empresa</label>
         <div className="flex gap-2">
           <select
-            value={value}
-            onChange={onChange}
+            value={value || ''}
+            onChange={(e) => {
+              // Encontrar cliente seleccionado y llenar datos
+              const selectedCliente = clientes.find(c => c.nombre === e.target.value)
+              if (selectedCliente) {
+                onChange({
+                  target: { name: 'Nombre de la empresa', value: e.target.value }
+                })
+                if (onClienteSelect) {
+                  onClienteSelect(selectedCliente)
+                }
+              } else {
+                onChange({
+                  target: { name: 'Nombre de la empresa', value: e.target.value }
+                })
+              }
+            }}
             className="form-select flex-1"
           >
             <option value="">-- Seleccionar cliente --</option>

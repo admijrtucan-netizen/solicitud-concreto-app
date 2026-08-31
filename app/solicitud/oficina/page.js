@@ -6,6 +6,7 @@ import Link from 'next/link'
 import FormField from '@/components/FormField'
 import TimeSelector from '@/components/TimeSelector'
 import ClienteSelector from '../../components/ClienteSelector'
+import SignaturePad from '@/components/SignaturePad'
 
 export default function OficinaSolicitud() {
   const router = useRouter()
@@ -49,6 +50,9 @@ export default function OficinaSolicitud() {
   const [loading, setLoading] = useState(false)
   const [folioExists, setFolioExists] = useState(false)
   const [checkingFolio, setCheckingFolio] = useState(false)
+  const [signatures, setSignatures] = useState({
+    'Persona que tomó los datos firma': null,
+  })
 
   useEffect(() => {
     fetchNextFolio()
@@ -115,6 +119,9 @@ export default function OficinaSolicitud() {
     if (!formData['Dirección de la obra']) newErrors['Dirección de la obra'] = 'Requerido'
     if (!formData['Elemento a colar']) newErrors['Elemento a colar'] = 'Requerido'
     if (!formData['Volumen a colar (m³)']) newErrors['Volumen a colar (m³)'] = 'Requerido'
+    if (!signatures['Persona que tomó los datos firma']) {
+      newErrors['Firma'] = 'La firma es obligatoria'
+    }
 
     setErrors(newErrors)
     return Object.keys(newErrors).length === 0
@@ -130,6 +137,7 @@ export default function OficinaSolicitud() {
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
           ...formData,
+          'Firma': signatures['Persona que tomó los datos firma'],
           ETAPA: 'EN PROCESO',
         }),
       })
@@ -435,7 +443,6 @@ export default function OficinaSolicitud() {
               value={formData['Tipo de Concreto']}
               onChange={handleChange}
               options={[
-                { value: '', label: '-- Seleccionar --' },
                 { value: 'N', label: 'N' },
                 { value: 'RR', label: 'RR' },
               ]}
@@ -506,6 +513,22 @@ export default function OficinaSolicitud() {
               onChange={handleChange}
               required
             />
+          </div>
+
+          <h3 className="text-lg font-semibold mb-4 mt-8 text-gray-900">Firma</h3>
+          <div className="grid grid-cols-1 gap-4 p-4 bg-blue-50 border-l-4" style={{ borderLeftColor: '#3b82f6' }}>
+            <SignaturePad
+              onSignatureCapture={(sig) => setSignatures(prev => ({
+                ...prev,
+                'Persona que tomó los datos firma': sig,
+              }))}
+              label="Firma - Persona que tomó los datos (OBLIGATORIA)"
+            />
+            {errors['Firma'] && (
+              <div className="p-2 bg-red-100 border border-red-300 rounded text-sm text-red-700">
+                {errors['Firma']}
+              </div>
+            )}
           </div>
 
           <div className="flex gap-4 mt-8">
