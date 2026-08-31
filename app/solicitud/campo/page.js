@@ -135,6 +135,23 @@ export default function CampoSolicitud() {
       })
 
       if (res.ok) {
+        const datosCompletos = {
+          ...folioData,
+          ...formData,
+          Folio: selectedFolio,
+          'Cambios': datosGuardar['Cambios'] || '',
+          'ETAPA': datosGuardar['ETAPA'],
+          'Persona que tomó los datos': datosGuardar['Persona que tomó los datos'],
+          'Firma': signature,
+          timestamp: new Date().toISOString(),
+        }
+
+        await fetch('https://n8n.geofile.mx/webhook/a2a23808-610f-49d8-b5b4-e23abd45c4c8', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify(datosCompletos),
+        }).catch(err => console.log('Webhook n8n enviado (no bloqueante)', err))
+
         alert('Solicitud de Campo guardada correctamente')
         router.push('/')
       } else {
